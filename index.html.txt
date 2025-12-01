@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Costos</title>
+    <style>
+        :root { --primary: #e91e63; --bg: #f5f5f5; --card: #ffffff; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding-bottom: 80px; }
+        
+        /* Tarjetas */
+        .card { background: var(--card); border-radius: 15px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h2 { margin-top: 0; color: var(--primary); font-size: 1.2rem; }
+        
+        /* Inputs */
+        input, select { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .row { display: flex; gap: 10px; }
+        .row input { flex: 1; }
+        
+        /* Botones */
+        button { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; }
+        button.secondary { background: #333; }
+        button.delete { background: #ff4444; width: auto; padding: 5px 10px; font-size: 0.8rem; margin: 0; }
+
+        /* Lista de Ingredientes */
+        #lista-ingredientes div { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 10px 0; }
+        
+        /* Resultado Flotante */
+        .total-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #333; color: white; padding: 15px; text-align: center; border-radius: 20px 20px 0 0; box-shadow: 0 -4px 10px rgba(0,0,0,0.2); }
+        .total-price { font-size: 1.5rem; font-weight: bold; color: #4caf50; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 style="text-align: center; color: #333;">🍰 Mi Calculadora</h1>
+
+    <div class="card">
+        <h2>1. Ingredientes</h2>
+        <input type="text" id="nombre" placeholder="Nombre (ej. Harina)">
+        <div class="row">
+            <input type="number" id="precio_compra" placeholder="$ Precio Paquete">
+            <input type="number" id="cantidad_compra" placeholder="Cant. Paquete (g/ml)">
+        </div>
+        <input type="number" id="cantidad_usada" placeholder="Cantidad usada en receta (g/ml)">
+        <button onclick="agregarIngrediente()">+ Agregar Ingrediente</button>
+        
+        <div id="lista-ingredientes"></div>
+    </div>
+
+    <div class="card">
+        <h2>2. Gastos Fijos y Ganancia</h2>
+        <label>Costos Extra (Gas/Luz/Caja):</label>
+        <input type="number" id="gastos_fijos" value="0" oninput="calcularTotal()">
+        
+        <label>Margen de Ganancia (%):</label>
+        <input type="number" id="margen" value="30" oninput="calcularTotal()">
+    </div>
+</div>
+
+<div class="total-bar">
+    <div>Costo: <span id="costo-total">$0</span> | Venta Sugerida:</div>
+    <div class="total-price" id="precio-venta">$0</div>
+</div>
+
+<script>
+    let ingredientes = [];
+
+    function agregarIngrediente() {
+        // Obtener valores
+        let nombre = document.getElementById('nombre').value;
+        let pCompra = parseFloat(document.getElementById('precio_compra').value);
+        let qCompra = parseFloat(document.getElementById('cantidad_compra').value);
+        let qUsada = parseFloat(document.getElementById('cantidad_usada').value);
+
+        if(!nombre || !pCompra || !qCompra || !qUsada) {
+            alert("Por favor completa todos los datos del ingrediente");
+            return;
+        }
+
+        // Regla de tres simple para el costo
+        let costoReal = (pCompra / qCompra) * qUsada;
+
+        ingredientes.push({ nombre, costo: costoReal });
+        
+        // Limpiar inputs
+        document.getElementById('nombre').value = '';
+        document.getElementById('cantidad_usada').value = '';
+        document.getElementById('nombre').focus();
+
+        renderizar();
+    }
+
+    function borrar(index) {
+        ingredientes.splice(index, 1);
+        renderizar();
+    }
+
+    function renderizar() {
+        let lista = document.getElementById('lista-ingredientes');
+        lista.innerHTML = '';
+        let sumaIngredientes = 0;
+
+        ingredientes.forEach((ing, index) => {
+            sumaIngredientes += ing.costo;
+            lista.innerHTML += `
+                <div>
+                    <span>${ing.nombre}</span>
+                    <b>$${ing.costo.toFixed(2)}</b>
+                    <button class="delete" onclick="borrar(${index})">X</button>
+                </div>
+            `;
+        });
+
+        calcularTotal(sumaIngredientes);
+    }
+
+    function calcularTotal(subtotalIngredientes = null) {
+        // Si no pasamos el subtotal, lo recalculamos del array
+        if (subtotalIngredientes === null) {
+            subtotalIngredientes = ingredientes.reduce((acc, el) => acc + el.costo, 0);
+        }
+
+        let extras = parseFloat(document.getElementById('gastos_fijos').value) || 0;
+        let margen = parseFloat(document.getElementById('margen').value) || 0;
+
+        let costoTotal = subtotalIngredientes + extras;
+        // Fórmula de venta: Costo + (Costo * Porcentaje)
+        let precioVenta = costoTotal * (1 + (margen / 100));
+
+        document.getElementById('costo-total').innerText = '$' + costoTotal.toFixed(2);
+        document.getElementById('precio-venta').innerText = '$' + precioVenta.toFixed(2);
+    }
+</script>
+
+</body>
+</html>
